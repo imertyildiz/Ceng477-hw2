@@ -20,6 +20,10 @@
 using namespace tinyxml2;
 using namespace std;
 
+Line::Line(int a, int b){
+	this->vertexIds[0] = a;
+	this->vertexIds[1] = b;
+}
 /*
 	Transformations, clipping, culling, rasterization are done here.
 	You may define helper functions.
@@ -39,7 +43,9 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 		Vec4 newVec = Vec4(vec.x, vec.y, vec.z, 1, vec.colorId);
 		vec4_with_w.push_back(newVec);
 	}
-	
+	vector <Line> line_All;
+
+
 	// Modeling transformation
 	for(Mesh *mesh : this->meshes){
 		for (int i = 0 ; i < mesh->numberOfTransformations; i++){
@@ -197,25 +203,13 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 	Mcam[1][3] = -(camera->v.x * camera->pos.x + camera->v.y * camera->pos.y + camera->v.z * camera->pos.z);
 	Mcam[2][3] = -(camera->w.x * camera->pos.x + camera->w.y * camera->pos.y + camera->w.z * camera->pos.z);
 	Matrix4 matrixMcam = Matrix4(Mcam);
-	for (Mesh *mesh : this->meshes)
-	{
-		for (int j = 0; j < mesh->numberOfTriangles; j++)
-		{
-			//first
-			Vec4 vec4First = Vec4(verticesV2[mesh->triangles[j].getFirstVertexId() - 1].x, verticesV2[mesh->triangles[j].getFirstVertexId() - 1].y, verticesV2[mesh->triangles[j].getFirstVertexId() - 1].z, 1, verticesV2[mesh->triangles[j].getFirstVertexId() - 1].colorId);
-			Vec4 tmpVec4First = multiplyMatrixWithVec4(matrixMcam, vec4First);
-			verticesV2[mesh->triangles[j].getFirstVertexId() - 1] = Vec3(tmpVec4First.x, tmpVec4First.y, tmpVec4First.z, tmpVec4First.colorId);
-			//second
-			Vec4 vec4Second = Vec4(verticesV2[mesh->triangles[j].getSecondVertexId() - 1].x, verticesV2[mesh->triangles[j].getSecondVertexId() - 1].y, verticesV2[mesh->triangles[j].getSecondVertexId() - 1].z, 1, verticesV2[mesh->triangles[j].getSecondVertexId() - 1].colorId);
-			Vec4 tmpVec4Second = multiplyMatrixWithVec4(matrixMcam, vec4Second);
-			verticesV2[mesh->triangles[j].getSecondVertexId() - 1] = Vec3(tmpVec4Second.x, tmpVec4Second.y, tmpVec4Second.z, tmpVec4Second.colorId);
-			//third
-			Vec4 vec4Third = Vec4(verticesV2[mesh->triangles[j].getThirdVertexId() - 1].x, verticesV2[mesh->triangles[j].getThirdVertexId() - 1].y, verticesV2[mesh->triangles[j].getThirdVertexId() - 1].z, 1, verticesV2[mesh->triangles[j].getThirdVertexId() - 1].colorId);
-			Vec4 tmpVec4Third = multiplyMatrixWithVec4(matrixMcam, vec4Third);
-			verticesV2[mesh->triangles[j].getThirdVertexId() - 1] = Vec3(tmpVec4Third.x, tmpVec4Third.y, tmpVec4Third.z, tmpVec4Third.colorId);
-		}
-	}
 
+	for(int j = 0 ; j < verticesV2.size(); j++){
+		Vec4 vec4First = Vec4(verticesV2[j].x, verticesV2[j].y, verticesV2[j].z, double(1), verticesV2[j].colorId);
+		Vec4 tmpVec4First = multiplyMatrixWithVec4(matrixMcam, vec4First);
+		verticesV2[j] = Vec3(tmpVec4First.x, tmpVec4First.y, tmpVec4First.z, tmpVec4First.colorId);
+	}
+	
 	// Projection Transoformations
 	if (camera->projectionType){
 		// Perspective Projection
@@ -235,26 +229,12 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 		Mp2o[3][2] = double(-1);
 		Matrix4 matrixOrth = Matrix4(Morth);
 		Matrix4 matrixP2o = Matrix4(Mp2o);
-		for(Mesh *mesh : this->meshes){
-			for (int j = 0; j < mesh->numberOfTriangles; j++){
-				//first
-				Vec4 vec4First = Vec4(verticesV2[mesh->triangles[j].getFirstVertexId() - 1].x, verticesV2[mesh->triangles[j].getFirstVertexId() - 1].y,verticesV2[mesh->triangles[j].getFirstVertexId() - 1].z,1,verticesV2[mesh->triangles[j].getFirstVertexId() - 1].colorId);
-				Vec4 tmpVec4First = multiplyMatrixWithVec4(multiplyMatrixWithMatrix(matrixOrth,matrixP2o), vec4First);
-				verticesV2[mesh->triangles[j].getFirstVertexId() - 1] = Vec3(tmpVec4First.x, tmpVec4First.y, tmpVec4First.z, tmpVec4First.colorId);
-				vec4_with_w[mesh->triangles[j].getFirstVertexId() - 1] = tmpVec4First;
-				//second
-				Vec4 vec4Second = Vec4(verticesV2[mesh->triangles[j].getSecondVertexId() - 1].x, verticesV2[mesh->triangles[j].getSecondVertexId() - 1].y,verticesV2[mesh->triangles[j].getSecondVertexId() - 1].z,1,verticesV2[mesh->triangles[j].getSecondVertexId() - 1].colorId);
-				Vec4 tmpVec4Second = multiplyMatrixWithVec4(multiplyMatrixWithMatrix(matrixOrth,matrixP2o), vec4Second);
-				verticesV2[mesh->triangles[j].getSecondVertexId() - 1] = Vec3(tmpVec4Second.x, tmpVec4Second.y, tmpVec4Second.z, tmpVec4Second.colorId);
-				vec4_with_w[mesh->triangles[j].getSecondVertexId() - 1] = tmpVec4Second;
-				//third
-				Vec4 vec4Third = Vec4(verticesV2[mesh->triangles[j].getThirdVertexId() - 1].x, verticesV2[mesh->triangles[j].getThirdVertexId() - 1].y,verticesV2[mesh->triangles[j].getThirdVertexId() - 1].z,1,verticesV2[mesh->triangles[j].getThirdVertexId() - 1].colorId);
-				Vec4 tmpVec4Third = multiplyMatrixWithVec4(multiplyMatrixWithMatrix(matrixOrth,matrixP2o), vec4Third);
-				verticesV2[mesh->triangles[j].getThirdVertexId() - 1] = Vec3(tmpVec4Third.x, tmpVec4Third.y, tmpVec4Third.z, tmpVec4Third.colorId);
-				vec4_with_w[mesh->triangles[j].getThirdVertexId() - 1] = tmpVec4Third;
-			}
+		for(int j = 0 ; j < verticesV2.size(); j++){
+			Vec4 vec4First = Vec4(verticesV2[j].x, verticesV2[j].y,verticesV2[j].z,1,verticesV2[j].colorId);
+			Vec4 tmpVec4First = multiplyMatrixWithVec4(multiplyMatrixWithMatrix(matrixOrth,matrixP2o), vec4First);
+			verticesV2[j] = Vec3(tmpVec4First.x, tmpVec4First.y, tmpVec4First.z, tmpVec4First.colorId);
+			vec4_with_w[j] = tmpVec4First;
 		}
-				
 	}
 	else{
 		// Orthographic Projection
@@ -267,36 +247,25 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 		Morth[3][2] = -(camera->far + camera->near) / (camera->far - camera->near);
 		Morth[3][3] = double(1.0);
 		Matrix4 matrixOrth = Matrix4(Morth);
-		for(Mesh *mesh : this->meshes){
-			for (int j = 0; j < mesh->numberOfTriangles; j++){
-				//first
-				Vec4 vec4First = Vec4(verticesV2[mesh->triangles[j].getFirstVertexId() - 1].x, verticesV2[mesh->triangles[j].getFirstVertexId() - 1].y,verticesV2[mesh->triangles[j].getFirstVertexId() - 1].z,1,verticesV2[mesh->triangles[j].getFirstVertexId() - 1].colorId);
-				Vec4 tmpVec4First = multiplyMatrixWithVec4(matrixOrth, vec4First);
-				verticesV2[mesh->triangles[j].getFirstVertexId() - 1] = Vec3(tmpVec4First.x, tmpVec4First.y, tmpVec4First.z, tmpVec4First.colorId);
-				//second
-				Vec4 vec4Second = Vec4(verticesV2[mesh->triangles[j].getSecondVertexId() - 1].x, verticesV2[mesh->triangles[j].getSecondVertexId() - 1].y,verticesV2[mesh->triangles[j].getSecondVertexId() - 1].z,1,verticesV2[mesh->triangles[j].getSecondVertexId() - 1].colorId);
-				Vec4 tmpVec4Second = multiplyMatrixWithVec4(matrixOrth, vec4Second);
-				verticesV2[mesh->triangles[j].getSecondVertexId() - 1] = Vec3(tmpVec4Second.x, tmpVec4Second.y, tmpVec4Second.z, tmpVec4Second.colorId);
-				//third
-				Vec4 vec4Third = Vec4(verticesV2[mesh->triangles[j].getThirdVertexId() - 1].x, verticesV2[mesh->triangles[j].getThirdVertexId() - 1].y,verticesV2[mesh->triangles[j].getThirdVertexId() - 1].z,1,verticesV2[mesh->triangles[j].getThirdVertexId() - 1].colorId);
-				Vec4 tmpVec4Third = multiplyMatrixWithVec4(matrixOrth, vec4Third);
-				verticesV2[mesh->triangles[j].getThirdVertexId() - 1] = Vec3(tmpVec4Third.x, tmpVec4Third.y, tmpVec4Third.z, tmpVec4Third.colorId);
-			}
+		for(int j = 0 ; j < verticesV2.size(); j++){
+			Vec4 vec4First = Vec4(verticesV2[j].x, verticesV2[j].y,verticesV2[j].z,1,verticesV2[j].colorId);
+			Vec4 tmpVec4First = multiplyMatrixWithVec4(matrixOrth, vec4First);
+			verticesV2[j] = Vec3(tmpVec4First.x, tmpVec4First.y, tmpVec4First.z, tmpVec4First.colorId);
+			vec4_with_w[j] = tmpVec4First;
 		}
 	}
 
 	// CLIPPING FOR WIREFRAME
+
 	for(Mesh *mesh : this->meshes){
+		// FOR WIREFRAME
 		if(!(mesh->type)){
 			for (int j = 0; j < mesh->numberOfTriangles; j++){
-				
-				verticesV2[mesh->triangles[j].getThirdVertexId() - 1] = Vec3(tmpVec4Third.x, tmpVec4Third.y, tmpVec4Third.z, tmpVec4Third.colorId);
-				verticesV2[mesh->triangles[j].getThirdVertexId() - 1] = Vec3(tmpVec4Third.x, tmpVec4Third.y, tmpVec4Third.z, tmpVec4Third.colorId);
-				verticesV2[mesh->triangles[j].getThirdVertexId() - 1] = Vec3(tmpVec4Third.x, tmpVec4Third.y, tmpVec4Third.z, tmpVec4Third.colorId);
-
+				line_All.push_back(Line(mesh->triangles[j].getFirstVertexId(),mesh->triangles[j].getSecondVertexId()));
+				line_All.push_back(Line(mesh->triangles[j].getSecondVertexId(),mesh->triangles[j].getThirdVertexId()));
+				line_All.push_back(Line(mesh->triangles[j].getThirdVertexId(),mesh->triangles[j].getFirstVertexId()));
 			}
 		}
-		
 	}
 
 
@@ -306,7 +275,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 	for (int j = 0; j < camera->verRes; j++){
 		for (int i = 0; i < camera->horRes; i++){
 			// alpha = f12(i,j) / f12(x0,y0)
-			double alpha = 
+			double alpha;
 		}
 	}
 }
