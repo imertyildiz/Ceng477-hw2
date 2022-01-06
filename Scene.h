@@ -42,6 +42,14 @@ public:
 	int makeBetweenZeroAnd255(double value);
 	void writeImageToPPMFile(Camera* camera);
 	void convertPPMToPNG(string ppmFileName, int osType);
+	bool visible(double den, double num, double *t_e, double *t_l); 
+};
+
+class Line{
+	public:
+		int vertexIds[2];
+    	Line();
+    	Line(int vid1, int vid2);
 };
 
 #endif

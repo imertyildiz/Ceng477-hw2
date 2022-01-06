@@ -24,6 +24,33 @@ Line::Line(int a, int b){
 	this->vertexIds[0] = a;
 	this->vertexIds[1] = b;
 }
+bool Scene::visible(double den, double num, double *t_e, double *t_l){
+	double t;
+	if (den > double(0.0)){
+		t =  num / den;
+		if (t > *t_l){
+			return false;
+		}
+		if ( t > *t_e){
+			*t_e = t;
+		}
+	}
+	else if (den < 0.0){
+		t =  num / den;
+		if (t < *t_e){
+			return false;
+		}
+		if (t < *t_l){
+			*t_l = t;
+		}
+	}
+	else if (num > 0.0){
+		return false;
+	}
+	return true;
+	
+
+}
 /*
 	Transformations, clipping, culling, rasterization are done here.
 	You may define helper functions.
@@ -260,15 +287,157 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 	for(Mesh *mesh : this->meshes){
 		// FOR WIREFRAME
 		if(!(mesh->type)){
+			// visible olanlar line_all icerisindeki line'lar. type'ı wireframe olan mesh'lerin ucgenlerini ve vertice'lerini discard et !
 			for (int j = 0; j < mesh->numberOfTriangles; j++){
-				line_All.push_back(Line(mesh->triangles[j].getFirstVertexId(),mesh->triangles[j].getSecondVertexId()));
-				line_All.push_back(Line(mesh->triangles[j].getSecondVertexId(),mesh->triangles[j].getThirdVertexId()));
-				line_All.push_back(Line(mesh->triangles[j].getThirdVertexId(),mesh->triangles[j].getFirstVertexId()));
+				// For vertex 1 -> 2
+				Line tmp = Line(mesh->triangles[j].getFirstVertexId(),mesh->triangles[j].getSecondVertexId());
+				double max_w = max(abs(vec4_with_w[tmp.vertexIds[0] - 1].t), abs(vec4_with_w[tmp.vertexIds[1] - 1].t));
+				double min_w = -max_w;
+				double t_e = 0.0, t_l = 1.0;
+				bool visible_variable = false;
+				double d_x = vec4_with_w[tmp.vertexIds[1] - 1].x - vec4_with_w[tmp.vertexIds[0]- 1].x;
+				double d_y = vec4_with_w[tmp.vertexIds[1] - 1].y - vec4_with_w[tmp.vertexIds[0] - 1].y;
+				double d_z = vec4_with_w[tmp.vertexIds[1] - 1].z - vec4_with_w[tmp.vertexIds[0] - 1].z;
+
+				if (visible(d_x, min_w - vec4_with_w[tmp.vertexIds[0]-1].x, &t_e, &t_l)){
+					if (visible(-d_x, vec4_with_w[tmp.vertexIds[0]-1].x - max_w, &t_e, &t_l )){
+						if (visible(d_y, min_w - vec4_with_w[tmp.vertexIds[0]-1].y, &t_e, &t_l)){
+							if (visible(-d_y,vec4_with_w[tmp.vertexIds[0]-1].y - max_w, &t_e, &t_l)){
+								if (visible(d_z, min_w - vec4_with_w[tmp.vertexIds[0]-1].z, &t_e, &t_l)){
+									if (visible(-d_z, vec4_with_w[tmp.vertexIds[0]-1].z - max_w, &t_e, &t_l)){
+										visible_variable = true;
+										if (t_l < double(1.0)){
+											// TODO: color computation & (if exist) w computation.
+											Vec4 final_1_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[1]-1].t, vec4_with_w[tmp.vertexIds[1]-1].colorId);
+											Vec3 final_1_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[1]-1].colorId);
+											vec4_with_w.push_back(final_1_vec4);
+											verticesV2.push_back(final_1_vec3);
+											tmp.vertexIds[1] = verticesV2.size();
+										}
+										if ( t_e > double(0.0)){
+											Vec4 final_0_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), vec4_with_w[tmp.vertexIds[0]-1].t, vec4_with_w[tmp.vertexIds[0]-1].colorId);
+											Vec3 final_0_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), vec4_with_w[tmp.vertexIds[0]-1].colorId);
+											vec4_with_w.push_back(final_0_vec4);
+											verticesV2.push_back(final_0_vec3);
+											tmp.vertexIds[0] = verticesV2.size();
+										}
+										line_All.push_back(tmp);
+										// W division for Line[0]
+										verticesV2[tmp.vertexIds[0] -1].x /= vec4_with_w[tmp.vertexIds[0] -1].t;
+										verticesV2[tmp.vertexIds[0] -1].y /= vec4_with_w[tmp.vertexIds[0] -1].t;
+										verticesV2[tmp.vertexIds[0] -1].z /= vec4_with_w[tmp.vertexIds[0] -1].t;
+										// W division for Line[1]
+										verticesV2[tmp.vertexIds[1] -1].x /= vec4_with_w[tmp.vertexIds[1] -1].t;
+										verticesV2[tmp.vertexIds[1] -1].y /= vec4_with_w[tmp.vertexIds[1] -1].t;
+										verticesV2[tmp.vertexIds[1] -1].z /= vec4_with_w[tmp.vertexIds[1] -1].t;
+									}
+								}
+							}
+						}
+					}
+				}
+				// For vertex 2 -> 3
+				tmp = Line(mesh->triangles[j].getSecondVertexId(),mesh->triangles[j].getThirdVertexId());
+				max_w = max(abs(vec4_with_w[tmp.vertexIds[0] - 1].t), abs(vec4_with_w[tmp.vertexIds[1] - 1].t));
+				min_w = -max_w;
+				t_e = 0.0, t_l = 1.0;
+				visible_variable = false;
+				d_x = vec4_with_w[tmp.vertexIds[1] - 1].x - vec4_with_w[tmp.vertexIds[0]- 1].x;
+				d_y = vec4_with_w[tmp.vertexIds[1] - 1].y - vec4_with_w[tmp.vertexIds[0] - 1].y;
+				d_z = vec4_with_w[tmp.vertexIds[1] - 1].z - vec4_with_w[tmp.vertexIds[0] - 1].z;
+
+				if (visible(d_x, min_w - vec4_with_w[tmp.vertexIds[0]-1].x, &t_e, &t_l)){
+					if (visible(-d_x, vec4_with_w[tmp.vertexIds[0]-1].x - max_w, &t_e, &t_l )){
+						if (visible(d_y, min_w - vec4_with_w[tmp.vertexIds[0]-1].y, &t_e, &t_l)){
+							if (visible(-d_y,vec4_with_w[tmp.vertexIds[0]-1].y - max_w, &t_e, &t_l)){
+								if (visible(d_z, min_w - vec4_with_w[tmp.vertexIds[0]-1].z, &t_e, &t_l)){
+									if (visible(-d_z, vec4_with_w[tmp.vertexIds[0]-1].z - max_w, &t_e, &t_l)){
+										visible_variable = true;
+										if (t_l < double(1.0)){
+											// TODO: color computation & (if exist) w computation.
+											Vec4 final_1_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[0]-1].t, vec4_with_w[tmp.vertexIds[0]-1].colorId);
+											Vec3 final_1_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[0]-1].colorId);
+											vec4_with_w.push_back(final_1_vec4);
+											verticesV2.push_back(final_1_vec3);
+											tmp.vertexIds[1] = verticesV2.size();
+										}
+										if ( t_e > double(0.0)){
+											Vec4 final_0_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), vec4_with_w[tmp.vertexIds[0]-1].t, vec4_with_w[tmp.vertexIds[0]-1].colorId);
+											Vec3 final_0_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), vec4_with_w[tmp.vertexIds[0]-1].colorId);
+											vec4_with_w.push_back(final_0_vec4);
+											verticesV2.push_back(final_0_vec3);
+											tmp.vertexIds[0] = verticesV2.size();
+										}
+										line_All.push_back(tmp);
+									}
+								}
+							}
+						}
+					}
+				}
+				// For vertex 2 -> 3
+				tmp = Line(mesh->triangles[j].getThirdVertexId(),mesh->triangles[j].getFirstVertexId());
+				max_w = max(abs(vec4_with_w[tmp.vertexIds[0] - 1].t), abs(vec4_with_w[tmp.vertexIds[1] - 1].t));
+				min_w = -max_w;
+				t_e = 0.0, t_l = 1.0;
+				visible_variable = false;
+				d_x = vec4_with_w[tmp.vertexIds[1] - 1].x - vec4_with_w[tmp.vertexIds[0]- 1].x;
+				d_y = vec4_with_w[tmp.vertexIds[1] - 1].y - vec4_with_w[tmp.vertexIds[0] - 1].y;
+				d_z = vec4_with_w[tmp.vertexIds[1] - 1].z - vec4_with_w[tmp.vertexIds[0] - 1].z;
+
+				if (visible(d_x, min_w - vec4_with_w[tmp.vertexIds[0]-1].x, &t_e, &t_l)){
+					if (visible(-d_x, vec4_with_w[tmp.vertexIds[0]-1].x - max_w, &t_e, &t_l )){
+						if (visible(d_y, min_w - vec4_with_w[tmp.vertexIds[0]-1].y, &t_e, &t_l)){
+							if (visible(-d_y,vec4_with_w[tmp.vertexIds[0]-1].y - max_w, &t_e, &t_l)){
+								if (visible(d_z, min_w - vec4_with_w[tmp.vertexIds[0]-1].z, &t_e, &t_l)){
+									if (visible(-d_z, vec4_with_w[tmp.vertexIds[0]-1].z - max_w, &t_e, &t_l)){
+										visible_variable = true;
+										if (t_l < double(1.0)){
+											// TODO: color computation & (if exist) w computation.
+											Vec4 final_1_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[0]-1].t, vec4_with_w[tmp.vertexIds[0]-1].colorId);
+											Vec3 final_1_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[0]-1].colorId);
+											vec4_with_w.push_back(final_1_vec4);
+											verticesV2.push_back(final_1_vec3);
+											tmp.vertexIds[1] = verticesV2.size();
+										}
+										if ( t_e > double(0.0)){
+											Vec4 final_0_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), vec4_with_w[tmp.vertexIds[0]-1].t, vec4_with_w[tmp.vertexIds[0]-1].colorId);
+											Vec3 final_0_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), vec4_with_w[tmp.vertexIds[0]-1].colorId);
+											vec4_with_w.push_back(final_0_vec4);
+											verticesV2.push_back(final_0_vec3);
+											tmp.vertexIds[0] = verticesV2.size();
+										}
+										line_All.push_back(tmp);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		else{
+			for (int j = 0; j < mesh->numberOfTriangles; j++){
+				// TODO bu clipping loop'u disinda w division yapmak gerekebilir. alttaki islemler ve wireframe icindeki w division
+				// taktik: if t ==1 se bölme. 	OR	 verticeV2[i] == vec4_with_w[i] se w division yap
+				// w division for first vertex.
+				verticesV2[mesh->triangles[j].getFirstVertexId()-1 ].x /= vec4_with_w[mesh->triangles[j].getFirstVertexId()-1 ].t;
+				verticesV2[mesh->triangles[j].getFirstVertexId()-1 ].y /= vec4_with_w[mesh->triangles[j].getFirstVertexId()-1 ].t;
+				verticesV2[mesh->triangles[j].getFirstVertexId()-1 ].z /= vec4_with_w[mesh->triangles[j].getFirstVertexId()-1 ].t;
+				// w division for second vertex.
+				verticesV2[mesh->triangles[j].getSecondVertexId()-1 ].x /= vec4_with_w[mesh->triangles[j].getSecondVertexId()-1 ].t;
+				verticesV2[mesh->triangles[j].getSecondVertexId()-1 ].y /= vec4_with_w[mesh->triangles[j].getSecondVertexId()-1 ].t;
+				verticesV2[mesh->triangles[j].getSecondVertexId()-1 ].z /= vec4_with_w[mesh->triangles[j].getSecondVertexId()-1 ].t;
+				// w division for third vertex.
+				verticesV2[mesh->triangles[j].getThirdVertexId()-1 ].x /= vec4_with_w[mesh->triangles[j].getThirdVertexId()-1 ].t;
+				verticesV2[mesh->triangles[j].getThirdVertexId()-1 ].y /= vec4_with_w[mesh->triangles[j].getThirdVertexId()-1 ].t;
+				verticesV2[mesh->triangles[j].getThirdVertexId() -1 ].z /= vec4_with_w[mesh->triangles[j].getThirdVertexId()-1 ].t;
 			}
 		}
 	}
 
-
+	//Viewport transformation.
+	
 
 
 	// Triangle rasterization
