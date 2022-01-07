@@ -71,13 +71,16 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 		vec4_with_w.push_back(newVec);
 	}
 	vector <Line> line_All;
-
+	cout << this->colorsOfVertices.size()<<"\n";
+	for(int i=0;i < this->colorsOfVertices.size() ;i++){
+		cout << *this->colorsOfVertices[i] << "\n";
+	}
     double matrix_111[4][4] = {double(0.0)};
 	matrix_111[0][0] = (double) 1.0;
 	matrix_111[1][1] = (double) 1.0;
 	matrix_111[2][2] = (double) 1.0;
 	matrix_111[3][3] = (double) 1.0;
-	Matrix4 finalMatrix = Matrix4(matrix_111);
+	Matrix4 finalMatrixV1 = Matrix4(matrix_111);
 	// Modeling transformation
 	for(Mesh *mesh : this->meshes){
 		for (int i = 0 ; i < mesh->numberOfTransformations; i++){
@@ -89,6 +92,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 				matrix[2][2] = scaling.sz;
 				matrix[3][3] = double(1.0);
 				Matrix4 matrixV1 = Matrix4(matrix);
+				finalMatrixV1 = multiplyMatrixWithMatrix(matrixV1,finalMatrixV1);
 				for ( int j = 0 ; j < mesh-> numberOfTriangles ; j++ ){
 					// first vertex
 					Vec4 vec4_1 = Vec4(this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->x, this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->y,this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->z,1,this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->colorId);
@@ -169,17 +173,18 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 				matrix_1[3][3] =  double(1.0);
 
 				RxAngle[0][0] = double(1.0);
-				RxAngle[1][1] = cos(rotation.angle);
-				RxAngle[1][2] = -sin(rotation.angle);
-				RxAngle[2][1] = sin(rotation.angle);
-				RxAngle[2][2] = cos(rotation.angle);
+				RxAngle[1][1] = cos(rotation.angle*M_PI/180);
+				RxAngle[1][2] = -sin(rotation.angle*M_PI/180);
+				RxAngle[2][1] = sin(rotation.angle*M_PI/180);
+				RxAngle[2][2] = cos(rotation.angle*M_PI/180);
 				RxAngle[3][3] = double(1.0);
 				Matrix4 rxAngle = Matrix4(RxAngle);
 				Matrix4 matrixV1 = Matrix4(matrix);
 				Matrix4 matrixV1inverse = Matrix4(matrix_1);
+				Matrix4 finalMatrix = multiplyMatrixWithMatrix(multiplyMatrixWithMatrix(matrixV1inverse, rxAngle), matrixV1);
+				finalMatrixV1 = multiplyMatrixWithMatrix(finalMatrix, finalMatrixV1);
 				for (int j = 0; j < mesh->numberOfTriangles; j++)
 				{
-					Matrix4 finalMatrix = multiplyMatrixWithMatrix(multiplyMatrixWithMatrix(matrixV1inverse, rxAngle), matrixV1);
 					//first
 					Vec4 vec4First = Vec4(this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->x, this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->y,this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->z,1,this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->colorId);
 					Vec4 tmpVec4First = multiplyMatrixWithVec4(finalMatrix, vec4First);
@@ -208,6 +213,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 				matrix[2][3] = translation.tz;
 				matrix[3][3] = double(1.0);
 				Matrix4 matrixV1 = Matrix4(matrix);
+				finalMatrixV1 = multiplyMatrixWithMatrix(matrixV1,finalMatrixV1);
 				for ( int j = 0 ; j < mesh-> numberOfTriangles ; j++ ){
 					//first
 					Vec4 vec4First = Vec4(this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->x, this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->y,this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->z,1,this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->colorId);
@@ -228,7 +234,6 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 			}
 		}
 	}
-	
 	// Camera Transformation
 	double Mcam[4][4] = {double(0.0)};
 	Mcam[0][0] = camera->u.x;
@@ -245,7 +250,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 	Mcam[2][3] = -(camera->w.x * camera->pos.x + camera->w.y * camera->pos.y + camera->w.z * camera->pos.z);
 	Mcam[3][3] = double(1.0);
 	Matrix4 matrixMcam = Matrix4(Mcam);
-
+	finalMatrixV1 = multiplyMatrixWithMatrix(matrixMcam,finalMatrixV1);
 	for(int j = 0 ; j < verticesV2.size(); j++){
 		Vec4 vec4First = Vec4(verticesV2[j].x, verticesV2[j].y, verticesV2[j].z, double(1), verticesV2[j].colorId);
 		Vec4 tmpVec4First = multiplyMatrixWithVec4(matrixMcam, vec4First);
@@ -256,25 +261,18 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 	// Projection Transoformations
 	if (camera->projectionType){
 		// Perspective Projection
-		double Morth[4][4] = {double(0.0)};
-		double Mp2o[4][4] = {double(0.0)};
-		Morth[0][0] = 2 / (camera->right - camera->left);
-		Morth[1][1] = 2 / (camera->top - camera->bottom);
-		Morth[2][2] = -2 / (camera->far - camera->near);
-		Morth[3][0] = -(camera->right + camera->left) / (camera->right - camera->left);
-		Morth[3][1] = -(camera->top + camera->bottom) / (camera->top - camera->bottom);
-		Morth[3][2] = -(camera->far + camera->near) / (camera->far - camera->near);
-		Morth[3][3] = double(1.0);
-		Mp2o[0][0] = camera->near;
-		Mp2o[1][1] = camera->near;
-		Mp2o[2][2] = camera->far + camera->near;
-		Mp2o[2][3] = camera->far * camera->near;
-		Mp2o[3][2] = double(-1);
-		Matrix4 matrixOrth = Matrix4(Morth);
-		Matrix4 matrixP2o = Matrix4(Mp2o);
+		double MPer[4][4] = {double(0.0)};
+		MPer[0][0] = 2 * camera->near / (camera->right - camera->left);
+		MPer[0][2] = (camera->right + camera->left) / (camera->right - camera->left);
+		MPer[1][1] = 2 * camera->near / (camera->top - camera->bottom);
+		MPer[1][2] = (camera->top + camera->bottom) / (camera->top - camera->bottom);
+		MPer[2][2] = - (camera->far + camera->near) / (camera->far - camera->near);
+		MPer[2][3] = - ( 2 * camera->far * camera->near) / (camera->far - camera->near);
+		MPer[3][2] = -(double)1;
+		finalMatrixV1 = multiplyMatrixWithMatrix(MPer,finalMatrixV1);
 		for(int j = 0 ; j < verticesV2.size(); j++){
 			Vec4 vec4First = Vec4(verticesV2[j].x, verticesV2[j].y,verticesV2[j].z,1,verticesV2[j].colorId);
-			Vec4 tmpVec4First = multiplyMatrixWithVec4(multiplyMatrixWithMatrix(matrixOrth,matrixP2o), vec4First);
+			Vec4 tmpVec4First = multiplyMatrixWithVec4(MPer, vec4First);
 			verticesV2[j] = Vec3(tmpVec4First.x, tmpVec4First.y, tmpVec4First.z, tmpVec4First.colorId);
 			vec4_with_w[j] = tmpVec4First;
 		}
@@ -290,6 +288,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 		Morth[3][2] = -(camera->far + camera->near) / (camera->far - camera->near);
 		Morth[3][3] = double(1.0);
 		Matrix4 matrixOrth = Matrix4(Morth);
+		finalMatrixV1 = multiplyMatrixWithMatrix(matrixOrth,finalMatrixV1);
 		for(int j = 0 ; j < verticesV2.size(); j++){
 			Vec4 vec4First = Vec4(verticesV2[j].x, verticesV2[j].y,verticesV2[j].z,1,verticesV2[j].colorId);
 			Vec4 tmpVec4First = multiplyMatrixWithVec4(matrixOrth, vec4First);
@@ -297,6 +296,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 			vec4_with_w[j] = tmpVec4First;
 		}
 	}
+	cout << finalMatrixV1;
 
 	// CLIPPING FOR WIREFRAME
 
@@ -323,6 +323,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 									if (visible(-d_z, vec4_with_w[tmp.vertexIds[0]-1].z - max_w, &t_e, &t_l)){
 										visible_variable = true;
 										if (t_l < double(1.0)){
+											cout << "\nMert1\n";
 											// TODO: color computation & (if exist) w computation.
 											double dst_vertice0 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l)) - vec4_with_w[tmp.vertexIds[0]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l)) - vec4_with_w[tmp.vertexIds[0]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l)) - vec4_with_w[tmp.vertexIds[0]-1].z),2));
 											double dst_vertice1 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l)) - vec4_with_w[tmp.vertexIds[1]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l)) - vec4_with_w[tmp.vertexIds[1]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l)) - vec4_with_w[tmp.vertexIds[1]-1].z),2));
@@ -342,13 +343,14 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 											Color tmp_color = Color(tmp_r, tmp_g, tmp_b);
 											this->colorsOfVertices.push_back(&tmp_color);
 											
-											Vec4 final_1_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[1]-1].t, this->colorsOfVertices.size());
-											Vec3 final_1_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), this->colorsOfVertices.size());
+											Vec4 final_1_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[1]-1].t, vec4_with_w[tmp.vertexIds[1]-1].colorId);
+											Vec3 final_1_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[1]-1].colorId);
 											vec4_with_w.push_back(final_1_vec4);
 											verticesV2.push_back(final_1_vec3);
 											tmp.vertexIds[1] = verticesV2.size();
 										}
 										if ( t_e > double(0.0)){
+											cout << "\nMert2\n";
 											double dst_vertice0 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e)) - vec4_with_w[tmp.vertexIds[0]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e)) - vec4_with_w[tmp.vertexIds[0]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e)) - vec4_with_w[tmp.vertexIds[0]-1].z),2));
 											double dst_vertice1 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e)) - vec4_with_w[tmp.vertexIds[1]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e)) - vec4_with_w[tmp.vertexIds[1]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e)) - vec4_with_w[tmp.vertexIds[1]-1].z),2));
 											double tot_dist =  dst_vertice0 + dst_vertice1;
@@ -366,8 +368,8 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 
 											Color tmp_color = Color(tmp_r, tmp_g, tmp_b);
 											this->colorsOfVertices.push_back(&tmp_color);
-											Vec4 final_0_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), vec4_with_w[tmp.vertexIds[0]-1].t, this->colorsOfVertices.size());
-											Vec3 final_0_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), this->colorsOfVertices.size());
+											Vec4 final_0_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), vec4_with_w[tmp.vertexIds[0]-1].t, vec4_with_w[tmp.vertexIds[0]-1].colorId);
+											Vec3 final_0_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), vec4_with_w[tmp.vertexIds[0]-1].colorId);
 											vec4_with_w.push_back(final_0_vec4);
 											verticesV2.push_back(final_0_vec3);
 											tmp.vertexIds[0] = verticesV2.size();
@@ -398,6 +400,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 										visible_variable = true;
 										if (t_l < double(1.0)){
 											// TODO: color computation & (if exist) w computation.
+											cout << "\nMert3\n";
 											double dst_vertice0 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l)) - vec4_with_w[tmp.vertexIds[0]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l)) - vec4_with_w[tmp.vertexIds[0]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l)) - vec4_with_w[tmp.vertexIds[0]-1].z),2));
 											double dst_vertice1 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l)) - vec4_with_w[tmp.vertexIds[1]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l)) - vec4_with_w[tmp.vertexIds[1]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l)) - vec4_with_w[tmp.vertexIds[1]-1].z),2));
 											double tot_dist =  dst_vertice0 + dst_vertice1;
@@ -414,13 +417,14 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 											tmp_b /= tot_dist;
 											Color tmp_color = Color(tmp_r, tmp_g, tmp_b);
 											this->colorsOfVertices.push_back(&tmp_color);
-											Vec4 final_1_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[0]-1].t, this->colorsOfVertices.size());
-											Vec3 final_1_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), this->colorsOfVertices.size());
+											Vec4 final_1_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[1]-1].t, this->colorsOfVertices.size());
+											Vec3 final_1_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l),this->colorsOfVertices.size());
 											vec4_with_w.push_back(final_1_vec4);
 											verticesV2.push_back(final_1_vec3);
 											tmp.vertexIds[1] = verticesV2.size();
 										}
 										if ( t_e > double(0.0)){
+											cout << "\nMert4\n";
 											double dst_vertice0 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e)) - vec4_with_w[tmp.vertexIds[0]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e)) - vec4_with_w[tmp.vertexIds[0]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e)) - vec4_with_w[tmp.vertexIds[0]-1].z),2));
 											double dst_vertice1 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e)) - vec4_with_w[tmp.vertexIds[1]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e)) - vec4_with_w[tmp.vertexIds[1]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e)) - vec4_with_w[tmp.vertexIds[1]-1].z),2));
 											double tot_dist =  dst_vertice0 + dst_vertice1;
@@ -469,6 +473,7 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 										visible_variable = true;
 										if (t_l < double(1.0)){
 											// TODO: color computation & (if exist) w computation.
+											cout << "\nMert5\n";
 											double dst_vertice0 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l)) - vec4_with_w[tmp.vertexIds[0]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l)) - vec4_with_w[tmp.vertexIds[0]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l)) - vec4_with_w[tmp.vertexIds[0]-1].z),2));
 											double dst_vertice1 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l)) - vec4_with_w[tmp.vertexIds[1]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l)) - vec4_with_w[tmp.vertexIds[1]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l)) - vec4_with_w[tmp.vertexIds[1]-1].z),2));
 											double tot_dist =  dst_vertice0 + dst_vertice1;
@@ -485,13 +490,14 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 											tmp_b /= tot_dist;
 											Color tmp_color = Color(tmp_r, tmp_g, tmp_b);
 											this->colorsOfVertices.push_back(&tmp_color);
-											Vec4 final_1_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[0]-1].t, this->colorsOfVertices.size());
+											Vec4 final_1_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[1]-1].t,this->colorsOfVertices.size());
 											Vec3 final_1_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l),  this->colorsOfVertices.size());
 											vec4_with_w.push_back(final_1_vec4);
 											verticesV2.push_back(final_1_vec3);
 											tmp.vertexIds[1] = verticesV2.size();
 										}
 										if ( t_e > double(0.0)){
+											cout << "\nMert6\n";
 											double dst_vertice0 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e)) - vec4_with_w[tmp.vertexIds[0]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e)) - vec4_with_w[tmp.vertexIds[0]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e)) - vec4_with_w[tmp.vertexIds[0]-1].z),2));
 											double dst_vertice1 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e)) - vec4_with_w[tmp.vertexIds[1]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e)) - vec4_with_w[tmp.vertexIds[1]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e)) - vec4_with_w[tmp.vertexIds[1]-1].z),2));
 											double tot_dist =  dst_vertice0 + dst_vertice1;
@@ -606,25 +612,36 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 	// }
 
 	// Rasterization
+	cout <<"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" <<this->colorsOfVertices.size()<<"\n";
+	for(int i=0;i < this->colorsOfVertices.size() ;i++){
+		cout << *this->colorsOfVertices[i] << "\n";
+	}
+
 	for (int j = 0; j < line_All.size(); j++){ // rasterize all lines inserted
 		double x0 = verticesV2[line_All[j].vertexIds[0] - 1].x;
 		double x1 = verticesV2[line_All[j].vertexIds[1] - 1].x;
 		double y0 = verticesV2[line_All[j].vertexIds[0] - 1].y;
 		double y1 = verticesV2[line_All[j].vertexIds[1] - 1].y;
+		cout << x0 << " " << x1 << " " << y0 << " " << y1 << "\n";
+		cout << verticesV2[line_All[j].vertexIds[0] - 1].colorId << " " << verticesV2[line_All[j].vertexIds[1] - 1].colorId<<"\n";
 		double y = y0;
 		double d = (y0 - y1) + 0.5 * (x1 - x0);
-		Color *c = this->colorsOfVertices[verticesV2[line_All[j].vertexIds[0] - 1].colorId -1];
-		Color *c1 = this->colorsOfVertices[verticesV2[line_All[j].vertexIds[1] - 1].colorId - 1];
+		Color c_x = *this->colorsOfVertices[verticesV2[line_All[j].vertexIds[0] - 1].colorId -1];
+		Color c1_x = *this->colorsOfVertices[verticesV2[line_All[j].vertexIds[1] - 1].colorId - 1];
+		Color * c1 = &c1_x;
+		Color * c = &c_x;
 		Color dc = Color();
+		cout << "v0: " << c->r << " " << c->g << " " << c->b << "\n";
+		cout << "v1: " << c1->r << " " << c1->g << " " << c1->b << "\n";
 		dc.r = (c1->r - c->r) / abs(x1 - x0);
 		dc.g = (c1->g - c->g) / abs(x1 - x0);
 		dc.b = (c1->b - c->b) / abs(x1 - x0);
 		if (x1 > x0)
 		{
 			for (int x = x0; x <= x1; x++){
-				this->image[x][y].r = c->r;
-				this->image[x][y].g = c->g;
-				this->image[x][y].b = c->b;
+				this->image[x][y].r = makeBetweenZeroAnd255(c->r);
+				this->image[x][y].g = makeBetweenZeroAnd255(c->g);
+				this->image[x][y].b = makeBetweenZeroAnd255(c->b);
 				if(d < 0){
 					y += 1;
 					d += (y0 - y1) + (x1 - x0);
@@ -639,9 +656,9 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 		}
 		else{
 			for (int x = x1; x <= x0; x++){
-				this->image[x][y].r = c->r;
-				this->image[x][y].g = c->g;
-				this->image[x][y].b = c->b;
+				this->image[x][y].r = makeBetweenZeroAnd255(c->r);
+				this->image[x][y].g = makeBetweenZeroAnd255(c->g);
+				this->image[x][y].b = makeBetweenZeroAnd255(c->b);
 				if(d < 0){
 					y += 1;
 					d += (y0 - y1) + (x1 - x0);
