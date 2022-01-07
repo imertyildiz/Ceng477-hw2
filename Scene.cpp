@@ -326,10 +326,12 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 										verticesV2[tmp.vertexIds[0] -1].x /= vec4_with_w[tmp.vertexIds[0] -1].t;
 										verticesV2[tmp.vertexIds[0] -1].y /= vec4_with_w[tmp.vertexIds[0] -1].t;
 										verticesV2[tmp.vertexIds[0] -1].z /= vec4_with_w[tmp.vertexIds[0] -1].t;
+										vec4_with_w[tmp.vertexIds[0] - 1].t /= vec4_with_w[tmp.vertexIds[0] - 1].t; // asli ekledi
 										// W division for Line[1]
 										verticesV2[tmp.vertexIds[1] -1].x /= vec4_with_w[tmp.vertexIds[1] -1].t;
 										verticesV2[tmp.vertexIds[1] -1].y /= vec4_with_w[tmp.vertexIds[1] -1].t;
 										verticesV2[tmp.vertexIds[1] -1].z /= vec4_with_w[tmp.vertexIds[1] -1].t;
+										vec4_with_w[tmp.vertexIds[1] - 1].t /= vec4_with_w[tmp.vertexIds[1] - 1].t; // asli ekledi
 									}
 								}
 							}
@@ -418,35 +420,118 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 		}
 		else{
 			for (int j = 0; j < mesh->numberOfTriangles; j++){
-				// TODO bu clipping loop'u disinda w division yapmak gerekebilir. alttaki islemler ve wireframe icindeki w division
+				// TODO: bu clipping loop'u disinda w division yapmak gerekebilir. alttaki islemler ve wireframe icindeki w division
 				// taktik: if t ==1 se bölme. 	OR	 verticeV2[i] == vec4_with_w[i] se w division yap
 				// w division for first vertex.
-				verticesV2[mesh->triangles[j].getFirstVertexId()-1 ].x /= vec4_with_w[mesh->triangles[j].getFirstVertexId()-1 ].t;
-				verticesV2[mesh->triangles[j].getFirstVertexId()-1 ].y /= vec4_with_w[mesh->triangles[j].getFirstVertexId()-1 ].t;
-				verticesV2[mesh->triangles[j].getFirstVertexId()-1 ].z /= vec4_with_w[mesh->triangles[j].getFirstVertexId()-1 ].t;
+				// TODO: vec4_with_w 'nun x,y,z'sini de t'ye bölmemiz gerekmez mi? sonradan hiç kullanmayacak mıyız?
+				if(vec4_with_w[mesh->triangles[j].getFirstVertexId()-1 ].t != double(1.0)){
+					verticesV2[mesh->triangles[j].getFirstVertexId()-1 ].x /= vec4_with_w[mesh->triangles[j].getFirstVertexId()-1 ].t;
+					verticesV2[mesh->triangles[j].getFirstVertexId()-1 ].y /= vec4_with_w[mesh->triangles[j].getFirstVertexId()-1 ].t;
+					verticesV2[mesh->triangles[j].getFirstVertexId()-1 ].z /= vec4_with_w[mesh->triangles[j].getFirstVertexId()-1 ].t;
+					vec4_with_w[mesh->triangles[j].getFirstVertexId() - 1].t /= vec4_with_w[mesh->triangles[j].getFirstVertexId() - 1].t;
+				}
 				// w division for second vertex.
-				verticesV2[mesh->triangles[j].getSecondVertexId()-1 ].x /= vec4_with_w[mesh->triangles[j].getSecondVertexId()-1 ].t;
-				verticesV2[mesh->triangles[j].getSecondVertexId()-1 ].y /= vec4_with_w[mesh->triangles[j].getSecondVertexId()-1 ].t;
-				verticesV2[mesh->triangles[j].getSecondVertexId()-1 ].z /= vec4_with_w[mesh->triangles[j].getSecondVertexId()-1 ].t;
+				if(vec4_with_w[mesh->triangles[j].getSecondVertexId()-1 ].t != double(1.0)){
+					verticesV2[mesh->triangles[j].getSecondVertexId()-1 ].x /= vec4_with_w[mesh->triangles[j].getSecondVertexId()-1 ].t;
+					verticesV2[mesh->triangles[j].getSecondVertexId()-1 ].y /= vec4_with_w[mesh->triangles[j].getSecondVertexId()-1 ].t;
+					verticesV2[mesh->triangles[j].getSecondVertexId()-1 ].z /= vec4_with_w[mesh->triangles[j].getSecondVertexId()-1 ].t;
+					vec4_with_w[mesh->triangles[j].getSecondVertexId() - 1].t /= vec4_with_w[mesh->triangles[j].getSecondVertexId() - 1].t;
+				}
 				// w division for third vertex.
-				verticesV2[mesh->triangles[j].getThirdVertexId()-1 ].x /= vec4_with_w[mesh->triangles[j].getThirdVertexId()-1 ].t;
-				verticesV2[mesh->triangles[j].getThirdVertexId()-1 ].y /= vec4_with_w[mesh->triangles[j].getThirdVertexId()-1 ].t;
-				verticesV2[mesh->triangles[j].getThirdVertexId() -1 ].z /= vec4_with_w[mesh->triangles[j].getThirdVertexId()-1 ].t;
+				if(vec4_with_w[mesh->triangles[j].getThirdVertexId()-1 ].t != double(1.0)){
+					verticesV2[mesh->triangles[j].getThirdVertexId()-1 ].x /= vec4_with_w[mesh->triangles[j].getThirdVertexId()-1 ].t;
+					verticesV2[mesh->triangles[j].getThirdVertexId()-1 ].y /= vec4_with_w[mesh->triangles[j].getThirdVertexId()-1 ].t;
+					verticesV2[mesh->triangles[j].getThirdVertexId() -1 ].z /= vec4_with_w[mesh->triangles[j].getThirdVertexId()-1 ].t;
+					vec4_with_w[mesh->triangles[j].getThirdVertexId() - 1].t /= vec4_with_w[mesh->triangles[j].getThirdVertexId() - 1].t;
+				}
 			}
 		}
 	}
 
-	//Viewport transformation.
-	
+	// Viewport transformation.
+	double viewPort[4][4] = {double(0)};
+	viewPort[0][0] = camera->horRes / 2;
+	viewPort[0][3] = (camera->horRes - 1) / 2;
+	viewPort[1][1] = camera->verRes / 2;
+	viewPort[1][3] = (camera->verRes - 1) / 2;
+	viewPort[2][2] = 0.5;
+	viewPort[2][3] = 0.5;
+	Matrix4 viewPortMatrix = Matrix4(viewPort);
+	for (int j = 0; j < verticesV2.size(); j++)
+	{
+		Vec4 vec4 = Vec4(verticesV2[j].x, verticesV2[j].y, verticesV2[j].z, double(1.0), verticesV2[j].colorId);
+		Vec4 result = multiplyMatrixWithVec4(viewPortMatrix, vec4);
+		verticesV2[j] = Vec3(result.x, result.y, result.z, vec4.colorId);
+	}
 
-
-	// Triangle rasterization
-	for (int j = 0; j < camera->verRes; j++){
-		for (int i = 0; i < camera->horRes; i++){
-			// alpha = f12(i,j) / f12(x0,y0)
-			double alpha;
+	// Rasterization
+	for (int j = 0; j < line_All.size(); j++){ // rasterize all lines inserted
+		double x0 = verticesV2[line_All[j].vertexIds[0] - 1].x;
+		double x1 = verticesV2[line_All[j].vertexIds[1] - 1].x;
+		double y0 = verticesV2[line_All[j].vertexIds[0] - 1].y;
+		double y1 = verticesV2[line_All[j].vertexIds[1] - 1].y;
+		double y = y0;
+		double d = (y0 - y1) + 0.5 * (x1 - x0);
+		Color *c = this->colorsOfVertices[verticesV2[line_All[j].vertexIds[0] - 1].colorId -1];
+		Color *c1 = this->colorsOfVertices[verticesV2[line_All[j].vertexIds[1] - 1].colorId - 1];
+		Color dc = Color();
+		dc.r = (c1->r - c->r) / abs(x1 - x0);
+		dc.g = (c1->g - c->g) / abs(x1 - x0);
+		dc.b = (c1->b - c->b) / abs(x1 - x0);
+		if (x1 > x0)
+		{
+			for (int x = x0; x <= x1; x++){
+				this->image[x][y].r = c->r;
+				this->image[x][y].g = c->g;
+				this->image[x][y].b = c->b;
+				if(d < 0){
+					y += 1;
+					d += (y0 - y1) + (x1 - x0);
+				}
+				else{
+					d += y0 - y1;
+				}
+				c->r += dc.r;
+				c->g += dc.g;
+				c->b += dc.b;
+			}
+		}
+		else{
+			for (int x = x1; x <= x0; x++){
+				this->image[x][y].r = c->r;
+				this->image[x][y].g = c->g;
+				this->image[x][y].b = c->b;
+				if(d < 0){
+					y += 1;
+					d += (y0 - y1) + (x1 - x0);
+				}
+				else{
+					d += y0 - y1;
+				}
+				c->r += dc.r;
+				c->g += dc.g;
+				c->b += dc.b;
+			}
 		}
 	}
+
+	for(Mesh *mesh : this->meshes){ //rasterization for solids
+		if(mesh->type){
+			for (int j = 0; j < mesh->numberOfTriangles; j++){
+				double x0 = verticesV2[mesh->triangles[j].getFirstVertexId() - 1].x;
+				double y0 = verticesV2[mesh->triangles[j].getFirstVertexId() - 1].y;
+				double x1 = verticesV2[mesh->triangles[j].getSecondVertexId() - 1].x;
+				double y1 = verticesV2[mesh->triangles[j].getSecondVertexId() - 1].y;
+				double x2 = verticesV2[mesh->triangles[j].getThirdVertexId() - 1].x;
+				double y2 = verticesV2[mesh->triangles[j].getThirdVertexId() - 1].y;
+
+				for (int y = min({y0, y1, y2}); y <= max({y0, y1, y2}; y++)){
+					
+				}
+			}
+		}
+	}
+	
 }
 
 
