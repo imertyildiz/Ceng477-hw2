@@ -72,7 +72,12 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 	}
 	vector <Line> line_All;
 
-
+    double matrix_111[4][4] = {double(0.0)};
+	matrix_111[0][0] = (double) 1.0;
+	matrix_111[1][1] = (double) 1.0;
+	matrix_111[2][2] = (double) 1.0;
+	matrix_111[3][3] = (double) 1.0;
+	Matrix4 finalMatrix = Matrix4(matrix_111);
 	// Modeling transformation
 	for(Mesh *mesh : this->meshes){
 		for (int i = 0 ; i < mesh->numberOfTransformations; i++){
@@ -89,14 +94,17 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 					Vec4 vec4_1 = Vec4(this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->x, this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->y,this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->z,1,this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->colorId);
 					Vec4 tmpVec4_1 =  multiplyMatrixWithVec4(matrixV1, vec4_1);
 					verticesV2[mesh->triangles[j].getFirstVertexId() - 1] = Vec3(tmpVec4_1.x, tmpVec4_1.y, tmpVec4_1.z, tmpVec4_1.colorId);
+					vec4_with_w[mesh->triangles[j].getFirstVertexId() - 1] = tmpVec4_1; // asli ekledi
 					// second vertex
 					Vec4 vec4_2 = Vec4(this->vertices[mesh->triangles[j].getSecondVertexId() - 1]->x, this->vertices[mesh->triangles[j].getSecondVertexId() - 1]->y,this->vertices[mesh->triangles[j].getSecondVertexId() - 1]->z,1,this->vertices[mesh->triangles[j].getSecondVertexId() - 1]->colorId);
 					Vec4 tmpVec4_2 =  multiplyMatrixWithVec4(matrixV1, vec4_2);
 					verticesV2[mesh->triangles[j].getSecondVertexId() - 1] = Vec3(tmpVec4_2.x, tmpVec4_2.y, tmpVec4_2.z, tmpVec4_2.colorId);
+					vec4_with_w[mesh->triangles[j].getSecondVertexId() - 1] = tmpVec4_2;
 					// third vertex
 					Vec4 vec4_3 = Vec4(this->vertices[mesh->triangles[j].getSecondVertexId() - 1]->x, this->vertices[mesh->triangles[j].getThirdVertexId() - 1]->y,this->vertices[mesh->triangles[j].getThirdVertexId() - 1]->z,1,this->vertices[mesh->triangles[j].getThirdVertexId() - 1]->colorId);
 					Vec4 tmpVec4_3 =  multiplyMatrixWithVec4(matrixV1, vec4_3);
 					verticesV2[mesh->triangles[j].getThirdVertexId() - 1] = Vec3(tmpVec4_3.x, tmpVec4_3.y, tmpVec4_3.z, tmpVec4_3.colorId);
+					vec4_with_w[mesh->triangles[j].getThirdVertexId() - 1] = tmpVec4_3;
 				}
 			}
 			else if(mesh->transformationTypes[i] == 'r'){ // Rotation
@@ -176,14 +184,17 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 					Vec4 vec4First = Vec4(this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->x, this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->y,this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->z,1,this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->colorId);
 					Vec4 tmpVec4First = multiplyMatrixWithVec4(finalMatrix, vec4First);
 					verticesV2[mesh->triangles[j].getFirstVertexId() - 1] = Vec3(tmpVec4First.x, tmpVec4First.y, tmpVec4First.z, tmpVec4First.colorId);
+					vec4_with_w[mesh->triangles[j].getFirstVertexId() - 1] = tmpVec4First; 
 					//second
 					Vec4 vec4Second = Vec4(this->vertices[mesh->triangles[j].getSecondVertexId() - 1]->x, this->vertices[mesh->triangles[j].getSecondVertexId() - 1]->y,this->vertices[mesh->triangles[j].getSecondVertexId() - 1]->z,1,this->vertices[mesh->triangles[j].getSecondVertexId() - 1]->colorId);
 					Vec4 tmpVec4Second = multiplyMatrixWithVec4(finalMatrix, vec4Second);
 					verticesV2[mesh->triangles[j].getSecondVertexId() - 1] = Vec3(tmpVec4Second.x, tmpVec4Second.y, tmpVec4Second.z, tmpVec4Second.colorId);
+					vec4_with_w[mesh->triangles[j].getSecondVertexId() - 1] = tmpVec4Second;
 					//third
 					Vec4 vec4Third = Vec4(this->vertices[mesh->triangles[j].getThirdVertexId() - 1]->x, this->vertices[mesh->triangles[j].getThirdVertexId() - 1]->y,this->vertices[mesh->triangles[j].getThirdVertexId() - 1]->z,1,this->vertices[mesh->triangles[j].getThirdVertexId() - 1]->colorId);
 					Vec4 tmpVec4Third = multiplyMatrixWithVec4(finalMatrix, vec4Third);
 					verticesV2[mesh->triangles[j].getThirdVertexId() - 1] = Vec3(tmpVec4Third.x, tmpVec4Third.y, tmpVec4Third.z, tmpVec4Third.colorId);
+					vec4_with_w[mesh->triangles[j].getThirdVertexId() - 1] = tmpVec4Third;
 				}
 			}
 			else if (mesh->transformationTypes[i] == 't'){ // Translation
@@ -202,14 +213,17 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 					Vec4 vec4First = Vec4(this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->x, this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->y,this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->z,1,this->vertices[mesh->triangles[j].getFirstVertexId() - 1]->colorId);
 					Vec4 tmpVec4First = multiplyMatrixWithVec4(matrixV1, vec4First);
 					verticesV2[mesh->triangles[j].getFirstVertexId() - 1] = Vec3(tmpVec4First.x, tmpVec4First.y, tmpVec4First.z, tmpVec4First.colorId);
+					vec4_with_w[mesh->triangles[j].getFirstVertexId() - 1] = tmpVec4First;
 					//second
 					Vec4 vec4Second = Vec4(this->vertices[mesh->triangles[j].getSecondVertexId() - 1]->x, this->vertices[mesh->triangles[j].getSecondVertexId() - 1]->y,this->vertices[mesh->triangles[j].getSecondVertexId() - 1]->z,1,this->vertices[mesh->triangles[j].getSecondVertexId() - 1]->colorId);
 					Vec4 tmpVec4Second = multiplyMatrixWithVec4(matrixV1, vec4Second);
 					verticesV2[mesh->triangles[j].getSecondVertexId() - 1] = Vec3(tmpVec4Second.x, tmpVec4Second.y, tmpVec4Second.z, tmpVec4Second.colorId);
+					vec4_with_w[mesh->triangles[j].getSecondVertexId() - 1] = tmpVec4Second;
 					//third
 					Vec4 vec4Third = Vec4(this->vertices[mesh->triangles[j].getThirdVertexId() - 1]->x, this->vertices[mesh->triangles[j].getThirdVertexId() - 1]->y,this->vertices[mesh->triangles[j].getThirdVertexId() - 1]->z,1,this->vertices[mesh->triangles[j].getThirdVertexId() - 1]->colorId);
 					Vec4 tmpVec4Third = multiplyMatrixWithVec4(matrixV1, vec4Third);
 					verticesV2[mesh->triangles[j].getThirdVertexId() - 1] = Vec3(tmpVec4Third.x, tmpVec4Third.y, tmpVec4Third.z, tmpVec4Third.colorId);
+					vec4_with_w[mesh->triangles[j].getThirdVertexId() - 1] = tmpVec4Third;
 				}
 			}
 		}
@@ -229,14 +243,16 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 	Mcam[0][3] = -(camera->u.x * camera->pos.x + camera->u.y * camera->pos.y + camera->u.z * camera->pos.z);
 	Mcam[1][3] = -(camera->v.x * camera->pos.x + camera->v.y * camera->pos.y + camera->v.z * camera->pos.z);
 	Mcam[2][3] = -(camera->w.x * camera->pos.x + camera->w.y * camera->pos.y + camera->w.z * camera->pos.z);
+	Mcam[3][3] = double(1.0);
 	Matrix4 matrixMcam = Matrix4(Mcam);
 
 	for(int j = 0 ; j < verticesV2.size(); j++){
 		Vec4 vec4First = Vec4(verticesV2[j].x, verticesV2[j].y, verticesV2[j].z, double(1), verticesV2[j].colorId);
 		Vec4 tmpVec4First = multiplyMatrixWithVec4(matrixMcam, vec4First);
 		verticesV2[j] = Vec3(tmpVec4First.x, tmpVec4First.y, tmpVec4First.z, tmpVec4First.colorId);
+		vec4_with_w[j] = tmpVec4First;
 	}
-	
+
 	// Projection Transoformations
 	if (camera->projectionType){
 		// Perspective Projection
@@ -308,30 +324,55 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 										visible_variable = true;
 										if (t_l < double(1.0)){
 											// TODO: color computation & (if exist) w computation.
-											Vec4 final_1_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[1]-1].t, vec4_with_w[tmp.vertexIds[1]-1].colorId);
-											Vec3 final_1_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[1]-1].colorId);
+											double dst_vertice0 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l)) - vec4_with_w[tmp.vertexIds[0]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l)) - vec4_with_w[tmp.vertexIds[0]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l)) - vec4_with_w[tmp.vertexIds[0]-1].z),2));
+											double dst_vertice1 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l)) - vec4_with_w[tmp.vertexIds[1]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l)) - vec4_with_w[tmp.vertexIds[1]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l)) - vec4_with_w[tmp.vertexIds[1]-1].z),2));
+											double tot_dist =  dst_vertice0 + dst_vertice1;
+											double tmp_r = dst_vertice1 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[0]-1].colorId -1]->r); 
+											tmp_r += dst_vertice0 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[1]-1].colorId -1]->r); 
+											tmp_r /= tot_dist;
+
+											double tmp_g = dst_vertice1 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[0]-1].colorId -1]->r); 
+											tmp_g += dst_vertice0 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[1]-1].colorId -1]->r); 
+											tmp_g /= tot_dist;
+
+											double tmp_b = dst_vertice1 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[0]-1].colorId -1]->r); 
+											tmp_b += dst_vertice0 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[1]-1].colorId -1]->r); 
+											tmp_b /= tot_dist;
+
+											Color tmp_color = Color(tmp_r, tmp_g, tmp_b);
+											this->colorsOfVertices.push_back(&tmp_color);
+											
+											Vec4 final_1_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[1]-1].t, this->colorsOfVertices.size());
+											Vec3 final_1_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), this->colorsOfVertices.size());
 											vec4_with_w.push_back(final_1_vec4);
 											verticesV2.push_back(final_1_vec3);
 											tmp.vertexIds[1] = verticesV2.size();
 										}
 										if ( t_e > double(0.0)){
-											Vec4 final_0_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), vec4_with_w[tmp.vertexIds[0]-1].t, vec4_with_w[tmp.vertexIds[0]-1].colorId);
-											Vec3 final_0_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), vec4_with_w[tmp.vertexIds[0]-1].colorId);
+											double dst_vertice0 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e)) - vec4_with_w[tmp.vertexIds[0]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e)) - vec4_with_w[tmp.vertexIds[0]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e)) - vec4_with_w[tmp.vertexIds[0]-1].z),2));
+											double dst_vertice1 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e)) - vec4_with_w[tmp.vertexIds[1]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e)) - vec4_with_w[tmp.vertexIds[1]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e)) - vec4_with_w[tmp.vertexIds[1]-1].z),2));
+											double tot_dist =  dst_vertice0 + dst_vertice1;
+											double tmp_r = dst_vertice1 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[0]-1].colorId -1]->r); 
+											tmp_r += dst_vertice0 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[1]-1].colorId -1]->r); 
+											tmp_r /= tot_dist;
+
+											double tmp_g = dst_vertice1 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[0]-1].colorId -1]->g); 
+											tmp_g += dst_vertice0 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[1]-1].colorId -1]->g); 
+											tmp_g /= tot_dist;
+
+											double tmp_b = dst_vertice1 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[0]-1].colorId -1]->b); 
+											tmp_b += dst_vertice0 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[1]-1].colorId -1]->b); 
+											tmp_b /= tot_dist;
+
+											Color tmp_color = Color(tmp_r, tmp_g, tmp_b);
+											this->colorsOfVertices.push_back(&tmp_color);
+											Vec4 final_0_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), vec4_with_w[tmp.vertexIds[0]-1].t, this->colorsOfVertices.size());
+											Vec3 final_0_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), this->colorsOfVertices.size());
 											vec4_with_w.push_back(final_0_vec4);
 											verticesV2.push_back(final_0_vec3);
 											tmp.vertexIds[0] = verticesV2.size();
 										}
 										line_All.push_back(tmp);
-										// W division for Line[0]
-										verticesV2[tmp.vertexIds[0] -1].x /= vec4_with_w[tmp.vertexIds[0] -1].t;
-										verticesV2[tmp.vertexIds[0] -1].y /= vec4_with_w[tmp.vertexIds[0] -1].t;
-										verticesV2[tmp.vertexIds[0] -1].z /= vec4_with_w[tmp.vertexIds[0] -1].t;
-										vec4_with_w[tmp.vertexIds[0] - 1].t /= vec4_with_w[tmp.vertexIds[0] - 1].t; // asli ekledi
-										// W division for Line[1]
-										verticesV2[tmp.vertexIds[1] -1].x /= vec4_with_w[tmp.vertexIds[1] -1].t;
-										verticesV2[tmp.vertexIds[1] -1].y /= vec4_with_w[tmp.vertexIds[1] -1].t;
-										verticesV2[tmp.vertexIds[1] -1].z /= vec4_with_w[tmp.vertexIds[1] -1].t;
-										vec4_with_w[tmp.vertexIds[1] - 1].t /= vec4_with_w[tmp.vertexIds[1] - 1].t; // asli ekledi
 									}
 								}
 							}
@@ -357,15 +398,47 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 										visible_variable = true;
 										if (t_l < double(1.0)){
 											// TODO: color computation & (if exist) w computation.
-											Vec4 final_1_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[0]-1].t, vec4_with_w[tmp.vertexIds[0]-1].colorId);
-											Vec3 final_1_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[0]-1].colorId);
+											double dst_vertice0 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l)) - vec4_with_w[tmp.vertexIds[0]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l)) - vec4_with_w[tmp.vertexIds[0]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l)) - vec4_with_w[tmp.vertexIds[0]-1].z),2));
+											double dst_vertice1 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l)) - vec4_with_w[tmp.vertexIds[1]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l)) - vec4_with_w[tmp.vertexIds[1]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l)) - vec4_with_w[tmp.vertexIds[1]-1].z),2));
+											double tot_dist =  dst_vertice0 + dst_vertice1;
+											double tmp_r = dst_vertice1 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[0]-1].colorId -1]->r); 
+											tmp_r += dst_vertice0 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[1]-1].colorId -1]->r); 
+											tmp_r /= tot_dist;
+
+											double tmp_g = dst_vertice1 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[0]-1].colorId -1]->r); 
+											tmp_g += dst_vertice0 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[1]-1].colorId -1]->r); 
+											tmp_g /= tot_dist;
+
+											double tmp_b = dst_vertice1 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[0]-1].colorId -1]->r); 
+											tmp_b += dst_vertice0 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[1]-1].colorId -1]->r); 
+											tmp_b /= tot_dist;
+											Color tmp_color = Color(tmp_r, tmp_g, tmp_b);
+											this->colorsOfVertices.push_back(&tmp_color);
+											Vec4 final_1_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[0]-1].t, this->colorsOfVertices.size());
+											Vec3 final_1_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), this->colorsOfVertices.size());
 											vec4_with_w.push_back(final_1_vec4);
 											verticesV2.push_back(final_1_vec3);
 											tmp.vertexIds[1] = verticesV2.size();
 										}
 										if ( t_e > double(0.0)){
-											Vec4 final_0_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), vec4_with_w[tmp.vertexIds[0]-1].t, vec4_with_w[tmp.vertexIds[0]-1].colorId);
-											Vec3 final_0_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), vec4_with_w[tmp.vertexIds[0]-1].colorId);
+											double dst_vertice0 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e)) - vec4_with_w[tmp.vertexIds[0]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e)) - vec4_with_w[tmp.vertexIds[0]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e)) - vec4_with_w[tmp.vertexIds[0]-1].z),2));
+											double dst_vertice1 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e)) - vec4_with_w[tmp.vertexIds[1]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e)) - vec4_with_w[tmp.vertexIds[1]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e)) - vec4_with_w[tmp.vertexIds[1]-1].z),2));
+											double tot_dist =  dst_vertice0 + dst_vertice1;
+											double tmp_r = dst_vertice1 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[0]-1].colorId -1]->r); 
+											tmp_r += dst_vertice0 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[1]-1].colorId -1]->r); 
+											tmp_r /= tot_dist;
+
+											double tmp_g = dst_vertice1 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[0]-1].colorId -1]->g); 
+											tmp_g += dst_vertice0 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[1]-1].colorId -1]->g); 
+											tmp_g /= tot_dist;
+
+											double tmp_b = dst_vertice1 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[0]-1].colorId -1]->b); 
+											tmp_b += dst_vertice0 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[1]-1].colorId -1]->b); 
+											tmp_b /= tot_dist;
+											Color tmp_color = Color(tmp_r, tmp_g, tmp_b);
+											this->colorsOfVertices.push_back(&tmp_color);
+											Vec4 final_0_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), vec4_with_w[tmp.vertexIds[0]-1].t, this->colorsOfVertices.size());
+											Vec3 final_0_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), this->colorsOfVertices.size());
 											vec4_with_w.push_back(final_0_vec4);
 											verticesV2.push_back(final_0_vec3);
 											tmp.vertexIds[0] = verticesV2.size();
@@ -396,15 +469,47 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 										visible_variable = true;
 										if (t_l < double(1.0)){
 											// TODO: color computation & (if exist) w computation.
-											Vec4 final_1_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[0]-1].t, vec4_with_w[tmp.vertexIds[0]-1].colorId);
-											Vec3 final_1_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[0]-1].colorId);
+											double dst_vertice0 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l)) - vec4_with_w[tmp.vertexIds[0]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l)) - vec4_with_w[tmp.vertexIds[0]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l)) - vec4_with_w[tmp.vertexIds[0]-1].z),2));
+											double dst_vertice1 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l)) - vec4_with_w[tmp.vertexIds[1]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l)) - vec4_with_w[tmp.vertexIds[1]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l)) - vec4_with_w[tmp.vertexIds[1]-1].z),2));
+											double tot_dist =  dst_vertice0 + dst_vertice1;
+											double tmp_r = dst_vertice1 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[0]-1].colorId -1]->r); 
+											tmp_r += dst_vertice0 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[1]-1].colorId -1]->r); 
+											tmp_r /= tot_dist;
+
+											double tmp_g = dst_vertice1 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[0]-1].colorId -1]->r); 
+											tmp_g += dst_vertice0 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[1]-1].colorId -1]->r); 
+											tmp_g /= tot_dist;
+
+											double tmp_b = dst_vertice1 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[0]-1].colorId -1]->r); 
+											tmp_b += dst_vertice0 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[1]-1].colorId -1]->r); 
+											tmp_b /= tot_dist;
+											Color tmp_color = Color(tmp_r, tmp_g, tmp_b);
+											this->colorsOfVertices.push_back(&tmp_color);
+											Vec4 final_1_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l), vec4_with_w[tmp.vertexIds[0]-1].t, this->colorsOfVertices.size());
+											Vec3 final_1_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_l), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_l), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_l),  this->colorsOfVertices.size());
 											vec4_with_w.push_back(final_1_vec4);
 											verticesV2.push_back(final_1_vec3);
 											tmp.vertexIds[1] = verticesV2.size();
 										}
 										if ( t_e > double(0.0)){
-											Vec4 final_0_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), vec4_with_w[tmp.vertexIds[0]-1].t, vec4_with_w[tmp.vertexIds[0]-1].colorId);
-											Vec3 final_0_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), vec4_with_w[tmp.vertexIds[0]-1].colorId);
+											double dst_vertice0 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e)) - vec4_with_w[tmp.vertexIds[0]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e)) - vec4_with_w[tmp.vertexIds[0]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e)) - vec4_with_w[tmp.vertexIds[0]-1].z),2));
+											double dst_vertice1 = sqrt(pow(((vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e)) - vec4_with_w[tmp.vertexIds[1]-1].x),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e)) - vec4_with_w[tmp.vertexIds[1]-1].y),2) + pow(((vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e)) - vec4_with_w[tmp.vertexIds[1]-1].z),2));
+											double tot_dist =  dst_vertice0 + dst_vertice1;
+											double tmp_r = dst_vertice1 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[0]-1].colorId -1]->r); 
+											tmp_r += dst_vertice0 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[1]-1].colorId -1]->r); 
+											tmp_r /= tot_dist;
+
+											double tmp_g = dst_vertice1 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[0]-1].colorId -1]->g); 
+											tmp_g += dst_vertice0 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[1]-1].colorId -1]->g); 
+											tmp_g /= tot_dist;
+
+											double tmp_b = dst_vertice1 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[0]-1].colorId -1]->b); 
+											tmp_b += dst_vertice0 * (this->colorsOfVertices[vec4_with_w[tmp.vertexIds[1]-1].colorId -1]->b); 
+											tmp_b /= tot_dist;
+											Color tmp_color = Color(tmp_r, tmp_g, tmp_b);
+											this->colorsOfVertices.push_back(&tmp_color);
+											Vec4 final_0_vec4 = Vec4(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), vec4_with_w[tmp.vertexIds[0]-1].t, this->colorsOfVertices.size());
+											Vec3 final_0_vec3 = Vec3(vec4_with_w[tmp.vertexIds[0]-1].x + d_x * (t_e), vec4_with_w[tmp.vertexIds[0]-1].y + d_y * (t_e), vec4_with_w[tmp.vertexIds[0]-1].z + d_z * (t_e), this->colorsOfVertices.size());
 											vec4_with_w.push_back(final_0_vec4);
 											verticesV2.push_back(final_0_vec3);
 											tmp.vertexIds[0] = verticesV2.size();
@@ -418,7 +523,15 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 				}
 			}
 		}
-		else{
+	}
+
+	for(int i = 0;i < verticesV2.size();i++){
+		cout << "verticeV2 " << i << ": " << verticesV2[i] << "\n";
+		cout << "vertice_with_w " << i << ": " << vec4_with_w[i] << "\n";
+	}
+	for(Mesh *mesh : this->meshes){
+		// FOR WIREFRAME
+		if((mesh->type)){
 			for (int j = 0; j < mesh->numberOfTriangles; j++){
 				// TODO: bu clipping loop'u disinda w division yapmak gerekebilir. alttaki islemler ve wireframe icindeki w division
 				// taktik: if t ==1 se bölme. 	OR	 verticeV2[i] == vec4_with_w[i] se w division yap
@@ -428,28 +541,47 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 					verticesV2[mesh->triangles[j].getFirstVertexId()-1 ].x /= vec4_with_w[mesh->triangles[j].getFirstVertexId()-1 ].t;
 					verticesV2[mesh->triangles[j].getFirstVertexId()-1 ].y /= vec4_with_w[mesh->triangles[j].getFirstVertexId()-1 ].t;
 					verticesV2[mesh->triangles[j].getFirstVertexId()-1 ].z /= vec4_with_w[mesh->triangles[j].getFirstVertexId()-1 ].t;
-					vec4_with_w[mesh->triangles[j].getFirstVertexId() - 1].t /= vec4_with_w[mesh->triangles[j].getFirstVertexId() - 1].t;
+					vec4_with_w[mesh->triangles[j].getFirstVertexId() - 1].t = double(1.0);
 				}
 				// w division for second vertex.
 				if(vec4_with_w[mesh->triangles[j].getSecondVertexId()-1 ].t != double(1.0)){
 					verticesV2[mesh->triangles[j].getSecondVertexId()-1 ].x /= vec4_with_w[mesh->triangles[j].getSecondVertexId()-1 ].t;
 					verticesV2[mesh->triangles[j].getSecondVertexId()-1 ].y /= vec4_with_w[mesh->triangles[j].getSecondVertexId()-1 ].t;
 					verticesV2[mesh->triangles[j].getSecondVertexId()-1 ].z /= vec4_with_w[mesh->triangles[j].getSecondVertexId()-1 ].t;
-					vec4_with_w[mesh->triangles[j].getSecondVertexId() - 1].t /= vec4_with_w[mesh->triangles[j].getSecondVertexId() - 1].t;
+					vec4_with_w[mesh->triangles[j].getSecondVertexId() - 1].t = double(1.0);
 				}
 				// w division for third vertex.
 				if(vec4_with_w[mesh->triangles[j].getThirdVertexId()-1 ].t != double(1.0)){
 					verticesV2[mesh->triangles[j].getThirdVertexId()-1 ].x /= vec4_with_w[mesh->triangles[j].getThirdVertexId()-1 ].t;
 					verticesV2[mesh->triangles[j].getThirdVertexId()-1 ].y /= vec4_with_w[mesh->triangles[j].getThirdVertexId()-1 ].t;
 					verticesV2[mesh->triangles[j].getThirdVertexId() -1 ].z /= vec4_with_w[mesh->triangles[j].getThirdVertexId()-1 ].t;
-					vec4_with_w[mesh->triangles[j].getThirdVertexId() - 1].t /= vec4_with_w[mesh->triangles[j].getThirdVertexId() - 1].t;
+					vec4_with_w[mesh->triangles[j].getThirdVertexId() - 1].t = double(1.0);
 				}
 			}
 		}
 	}
 
+	for (int j = 0; j < line_All.size(); j++){ // w division for lines.
+		if(vec4_with_w[line_All[j].vertexIds[0] - 1].t != double(1.0)){
+		verticesV2[line_All[j].vertexIds[0] - 1].x /= vec4_with_w[line_All[j].vertexIds[0] - 1].t;
+		verticesV2[line_All[j].vertexIds[0] - 1].y /= vec4_with_w[line_All[j].vertexIds[0] - 1].t;
+		verticesV2[line_All[j].vertexIds[0] - 1].z /= vec4_with_w[line_All[j].vertexIds[0] - 1].t;
+		vec4_with_w[line_All[j].vertexIds[0] - 1].t = double(1.0);
+		}
+		if(vec4_with_w[line_All[j].vertexIds[1] - 1].t != double(1.0)){
+		verticesV2[line_All[j].vertexIds[1] - 1].x /= vec4_with_w[line_All[j].vertexIds[1] - 1].t;
+		verticesV2[line_All[j].vertexIds[1] - 1].y /= vec4_with_w[line_All[j].vertexIds[1] - 1].t;
+		verticesV2[line_All[j].vertexIds[1] - 1].z /= vec4_with_w[line_All[j].vertexIds[1] - 1].t;
+		vec4_with_w[line_All[j].vertexIds[1] - 1].t = double(1.0);
+		}
+	}
+
+	for(int i = 0;i < verticesV2.size();i++){
+		cout << "AFTER DIVISION vertice " << i << ": " << verticesV2[i] << "\n";
+		cout << "vertice_with_w " << i << ": " << vec4_with_w[i] << "\n";
+	}
 	// Viewport transformation.
-	double viewPort[4][4] = {double(0)};
+	double viewPort[4][4] = {double(0.0)};
 	viewPort[0][0] = camera->horRes / 2;
 	viewPort[0][3] = (camera->horRes - 1) / 2;
 	viewPort[1][1] = camera->verRes / 2;
@@ -463,6 +595,15 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 		Vec4 result = multiplyMatrixWithVec4(viewPortMatrix, vec4);
 		verticesV2[j] = Vec3(result.x, result.y, result.z, vec4.colorId);
 	}
+
+	// for(int i = 0;i < verticesV2.size();i++){
+	// 	cout << "vertice " << i << ": " << verticesV2[i] << "\n";
+	// }
+
+	// for(int i = 0;i < verticesV2.size();i++){
+	// 	cout<< camera->horRes << " " << camera->verRes << "\n";
+	// 	cout << "vertice " << i << ": " << verticesV2[i] << "\n";
+	// }
 
 	// Rasterization
 	for (int j = 0; j < line_All.size(); j++){ // rasterize all lines inserted
@@ -525,9 +666,9 @@ void Scene::forwardRenderingPipeline(Camera *camera)
 				double x2 = verticesV2[mesh->triangles[j].getThirdVertexId() - 1].x;
 				double y2 = verticesV2[mesh->triangles[j].getThirdVertexId() - 1].y;
 
-				for (int y = min({y0, y1, y2}); y <= max({y0, y1, y2}; y++)){
+				// for (int y = min({y0, y1, y2}); y <= max({y0, y1, y2}; y++)){
 					
-				}
+				// }
 			}
 		}
 	}
