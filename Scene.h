@@ -20,6 +20,13 @@
 
 using namespace std;
 
+class Line{
+	public:
+		int vertexIds[2];
+    	Line();
+    	Line(int vid1, int vid2);
+};
+
 class Scene
 {
 public:
@@ -43,13 +50,9 @@ public:
 	void writeImageToPPMFile(Camera* camera);
 	void convertPPMToPNG(string ppmFileName, int osType);
 	bool visible(double den, double num, double *t_e, double *t_l); 
+	bool is_in_line (Line line, vector<Line> line_vec);
 };
 
-class Line{
-	public:
-		int vertexIds[2];
-    	Line();
-    	Line(int vid1, int vid2);
-};
+
 
 #endif

@@ -28,11 +28,6 @@ int main(int argc, char *argv[])
             // initialize image with basic values
             scene->initializeImage(scene->cameras[i]);
 
-            for(Mesh* i : scene->meshes){
-                for(char c : i->transformationTypes){
-                cout << c << "\n ";
-                }
-            }
             // do forward rendering pipeline operations
             scene->forwardRenderingPipeline(scene->cameras[i]);
 
